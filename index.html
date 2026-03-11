@@ -19,7 +19,7 @@
 
         body {
             font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: #f8fafc;
+            background-color: #f2f2f7;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -33,15 +33,6 @@
             padding-bottom: calc(12px + var(--sab));
         }
 
-        .touch-target {
-            min-height: 48px;
-        }
-
-        /* 自定義捲軸隱藏但保留功能 */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        
         .ios-card-shadow {
             box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.04);
         }
@@ -49,14 +40,19 @@
         input::-webkit-calendar-picker-indicator {
             opacity: 0.4;
         }
+
+        /* 移除輸入框邊框 */
+        input:focus {
+            outline: none;
+        }
     </style>
 </head>
-<body class="bg-[#F2F2F7] text-slate-900 leading-tight">
-    <!-- 頂部標題與篩選 - 增加 Safe Area 支持 -->
+<body class="text-slate-900 leading-tight">
+    <!-- 頂部標題 -->
     <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 pt-safe px-5 pb-3 flex justify-between items-end">
         <div>
             <h1 class="text-xl font-black text-slate-800 tracking-tight">出帳核對</h1>
-            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Payment Tracker</p>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Quick Entry</p>
         </div>
         <select id="monthFilter" onchange="renderTable()" class="bg-slate-100/80 border-none rounded-full px-3 py-1.5 text-xs outline-none font-bold text-slate-600 appearance-none">
             <option value="all">所有月份</option>
@@ -64,7 +60,36 @@
     </header>
 
     <main class="px-4 py-5 pb-32">
-        <!-- 統計數據 - 左右圓角更大的 iOS 風格 -->
+        <!-- 直接顯示的新增區塊 -->
+        <section class="bg-white rounded-2xl ios-card-shadow border border-white p-4 mb-6">
+            <h2 class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-3">快速新增請款</h2>
+            <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-50 p-2.5 rounded-xl">
+                        <label class="text-[9px] font-black text-slate-400 block mb-0.5 uppercase">日期</label>
+                        <input type="date" id="formDate" class="w-full bg-transparent border-none p-0 text-sm font-medium">
+                    </div>
+                    <div class="bg-slate-50 p-2.5 rounded-xl">
+                        <label class="text-[9px] font-black text-slate-400 block mb-0.5 uppercase">金額</label>
+                        <input type="number" id="formAmount" placeholder="0" class="w-full bg-transparent border-none p-0 text-sm font-bold">
+                    </div>
+                </div>
+                <div class="bg-slate-50 p-2.5 rounded-xl">
+                    <label class="text-[9px] font-black text-slate-400 block mb-0.5 uppercase">廠商名稱</label>
+                    <input type="text" id="formVendor" list="vendorHistory" placeholder="輸入名稱..." class="w-full bg-transparent border-none p-0 text-sm font-medium">
+                    <datalist id="vendorHistory"></datalist>
+                </div>
+                <div class="bg-slate-50 p-2.5 rounded-xl">
+                    <label class="text-[9px] font-black text-slate-400 block mb-0.5 uppercase">備註說明</label>
+                    <input type="text" id="formDesc" placeholder="選填項目內容" class="w-full bg-transparent border-none p-0 text-sm font-medium">
+                </div>
+                <button onclick="addRecord()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-black text-sm active:scale-[0.98] transition-all shadow-md">
+                    儲存紀錄
+                </button>
+            </div>
+        </section>
+
+        <!-- 統計數據 -->
         <div class="flex gap-3 mb-6">
             <div class="bg-white p-4 rounded-2xl flex-1 ios-card-shadow border border-white">
                 <p class="text-slate-400 text-[10px] font-bold mb-1">本月總額</p>
@@ -76,63 +101,24 @@
             </div>
         </div>
 
+        <!-- 列表標題 -->
+        <div class="flex items-center justify-between mb-3 px-1">
+            <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest">最近紀錄</h2>
+            <button onclick="copyToClipboard()" class="text-indigo-500 text-[10px] font-bold flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                複製資料
+            </button>
+        </div>
+
         <!-- 列表區 -->
         <div id="recordList" class="space-y-3">
             <!-- 紀錄項目 -->
         </div>
 
-        <div id="noData" class="py-24 text-center hidden">
-            <div class="w-16 h-16 bg-slate-200/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
-            </div>
-            <p class="text-slate-400 text-sm font-medium">尚無任何請款資料</p>
+        <div id="noData" class="py-12 text-center hidden">
+            <p class="text-slate-400 text-xs font-medium">尚無請款資料</p>
         </div>
     </main>
-
-    <!-- 底部操作區 - 增加 Safe Area 支持 -->
-    <div class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-200/50 px-5 pt-3 pb-safe z-40">
-        <div class="flex gap-3 max-w-2xl mx-auto">
-            <button onclick="copyToClipboard()" class="bg-slate-100 text-slate-500 w-14 rounded-2xl flex items-center justify-center border border-slate-200/50 touch-target active:scale-95 transition-transform">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
-            </button>
-            <button onclick="openModal()" class="flex-1 bg-slate-900 text-white py-3 rounded-2xl font-bold text-sm shadow-xl shadow-slate-200 touch-target active:scale-[0.98] transition-all">
-                新增請款紀錄
-            </button>
-        </div>
-    </div>
-
-    <!-- 新增彈窗 - 半透明背景與毛玻璃 -->
-    <div id="modal" class="fixed inset-0 bg-slate-900/30 backdrop-blur-sm flex items-end justify-center hidden z-50 p-0 sm:p-6 sm:items-center">
-        <div class="bg-white rounded-t-[2.5rem] sm:rounded-3xl w-full max-w-lg shadow-2xl animate-in slide-in-from-bottom duration-300">
-            <div class="px-6 pt-6 pb-4 flex justify-between items-center">
-                <h2 class="text-lg font-black text-slate-800">新增請款</h2>
-                <button onclick="closeModal()" class="bg-slate-100 text-slate-400 w-8 h-8 rounded-full flex items-center justify-center text-xl">&times;</button>
-            </div>
-            <div class="p-6 pt-0 space-y-4">
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-slate-50 p-3 rounded-2xl">
-                        <label class="text-[10px] font-black text-slate-400 block mb-1 uppercase">日期</label>
-                        <input type="date" id="formDate" class="w-full bg-transparent border-none p-0 text-sm focus:ring-0 font-medium">
-                    </div>
-                    <div class="bg-slate-50 p-3 rounded-2xl">
-                        <label class="text-[10px] font-black text-slate-400 block mb-1 uppercase">金額</label>
-                        <input type="number" id="formAmount" placeholder="0" class="w-full bg-transparent border-none p-0 text-sm focus:ring-0 font-bold">
-                    </div>
-                </div>
-                <div class="bg-slate-50 p-3 rounded-2xl">
-                    <label class="text-[10px] font-black text-slate-400 block mb-1 uppercase">廠商名稱</label>
-                    <input type="text" id="formVendor" list="vendorHistory" placeholder="輸入名稱..." class="w-full bg-transparent border-none p-0 text-sm focus:ring-0 font-medium">
-                    <datalist id="vendorHistory"></datalist>
-                </div>
-                <div class="bg-slate-50 p-3 rounded-2xl">
-                    <label class="text-[10px] font-black text-slate-400 block mb-1 uppercase">備註說明</label>
-                    <input type="text" id="formDesc" placeholder="選填項目內容" class="w-full bg-transparent border-none p-0 text-sm focus:ring-0 font-medium">
-                </div>
-                <button onclick="addRecord()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-base shadow-lg shadow-indigo-100 mt-2 active:scale-95 transition-transform">儲存紀錄</button>
-                <div class="h-safe"></div>
-            </div>
-        </div>
-    </div>
 
     <!-- Toast 通知 -->
     <div id="toast" class="fixed top-safe mt-4 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur text-white px-5 py-2 rounded-full shadow-2xl opacity-0 transition-all pointer-events-none z-[60] text-xs font-bold">
@@ -167,12 +153,6 @@
             datalist.innerHTML = vendors.map(v => `<option value="${v}">`).join('');
         }
 
-        function openModal() { 
-            updateVendorHistory();
-            document.getElementById('modal').classList.remove('hidden'); 
-        }
-        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
-
         function addRecord() {
             const date = document.getElementById('formDate').value;
             const vendor = document.getElementById('formVendor').value;
@@ -190,11 +170,13 @@
                 invoiceReceived: false
             });
             saveAndRefresh();
-            closeModal();
             initMonthFilter();
+            updateVendorHistory();
+            // 重置欄位 (保留日期)
             document.getElementById('formVendor').value = '';
             document.getElementById('formAmount').value = '';
-            showToast("✅ 已成功新增紀錄");
+            document.getElementById('formDesc').value = '';
+            showToast("✅ 已儲存紀錄");
         }
 
         function toggleInvoice(id) {
@@ -208,7 +190,7 @@
             records = records.filter(r => r.id !== id);
             saveAndRefresh();
             initMonthFilter();
-            showToast("🗑️ 已刪除紀錄");
+            showToast("🗑️ 已刪除");
         }
 
         function saveAndRefresh() {
@@ -235,19 +217,19 @@
                     <div class="bg-white p-4 rounded-2xl ios-card-shadow border border-white flex justify-between items-center gap-4 transition-all active:scale-[0.99]">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-1">
-                                <span class="text-[10px] font-black text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded-md uppercase leading-none">${r.date.substring(5)}</span>
-                                <h3 class="text-[15px] font-bold text-slate-800 truncate leading-none">${r.vendor}</h3>
+                                <span class="text-[9px] font-black text-indigo-400 bg-indigo-50 px-1.5 py-0.5 rounded-md uppercase leading-none">${r.date.substring(5)}</span>
+                                <h3 class="text-[14px] font-bold text-slate-800 truncate leading-none">${r.vendor}</h3>
                             </div>
-                            <p class="text-[11px] text-slate-400 truncate mb-2">${r.desc || '無備註內容'}</p>
-                            <div class="flex items-center gap-3">
-                                <span class="text-base font-black text-slate-900 tabular-nums leading-none">$${r.amount.toLocaleString()}</span>
+                            <p class="text-[10px] text-slate-400 truncate mb-1.5">${r.desc || '無備註'}</p>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-black text-slate-900 tabular-nums leading-none">$${r.amount.toLocaleString()}</span>
                                 <button onclick="deleteRecord(${r.id})" class="text-slate-200 p-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                 </button>
                             </div>
                         </div>
                         <div class="shrink-0">
-                            <button onclick="toggleInvoice(${r.id})" class="h-12 px-5 rounded-2xl text-[12px] font-black border transition-all active:scale-90 ${r.invoiceReceived ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-slate-50 border-slate-100 text-slate-300'}">
+                            <button onclick="toggleInvoice(${r.id})" class="h-10 px-4 rounded-xl text-[11px] font-black border transition-all active:scale-90 ${r.invoiceReceived ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm' : 'bg-slate-50 border-slate-100 text-slate-300'}">
                                 ${r.invoiceReceived ? '已收' : '未收'}
                             </button>
                         </div>
@@ -273,7 +255,7 @@
             setTimeout(() => {
                 toast.style.opacity = '0';
                 toast.style.transform = 'translateX(-50%) translateY(0px)';
-            }, 2500);
+            }, 2000);
         }
 
         function copyToClipboard() {
@@ -282,7 +264,7 @@
             const el = document.createElement('textarea');
             el.value = tsv; document.body.appendChild(el); el.select();
             document.execCommand('copy'); document.body.removeChild(el);
-            showToast("📋 資料已複製至剪貼簿");
+            showToast("📋 資料已複製");
         }
     </script>
 </body>
